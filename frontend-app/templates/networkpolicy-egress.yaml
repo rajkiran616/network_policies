@@ -1,0 +1,89 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- if .Values.networkPolicy.egress.dns.enabled }}
+# Allow DNS resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.app.name }}-allow-dns
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: {{ .Values.app.name }}
+    policy-type: egress-dns
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              {{- range $key, $value := .Values.networkPolicy.egress.dns.namespaceLabels }}
+              {{ $key }}: {{ $value | quote }}
+              {{- end }}
+      ports:
+        - port: {{ .Values.networkPolicy.egress.dns.port }}
+          protocol: UDP
+        - port: {{ .Values.networkPolicy.egress.dns.port }}
+          protocol: TCP
+{{- end }}
+---
+{{- if .Values.networkPolicy.egress.database.enabled }}
+# Allow egress to database namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.app.name }}-allow-db-egress
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: {{ .Values.app.name }}
+    policy-type: egress-db
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              {{- range $key, $value := .Values.networkPolicy.egress.database.namespaceLabels }}
+              {{ $key }}: {{ $value | quote }}
+              {{- end }}
+      ports:
+        {{- range .Values.networkPolicy.egress.database.ports }}
+        - port: {{ .port }}
+          protocol: {{ .protocol }}
+        {{- end }}
+{{- end }}
+---
+{{- if .Values.networkPolicy.egress.external.enabled }}
+# Allow egress to external services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.app.name }}-allow-external-egress
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: {{ .Values.app.name }}
+    policy-type: egress-external
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  policyTypes:
+    - Egress
+  egress:
+    {{- range .Values.networkPolicy.egress.external.rules }}
+    # {{ .name }}
+    - to:
+        - ipBlock:
+            cidr: {{ .cidr }}
+      ports:
+        {{- range .ports }}
+        - port: {{ .port }}
+          protocol: {{ .protocol }}
+        {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

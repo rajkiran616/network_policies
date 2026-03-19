@@ -1,0 +1,28 @@
+{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.ingress.ingressController.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.app.name }}-allow-ingress-controller
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: {{ .Values.app.name }}
+    policy-type: ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- range $key, $value := .Values.networkPolicy.ingress.ingressController.namespaceLabels }}
+              {{ $key }}: {{ $value | quote }}
+              {{- end }}
+      ports:
+        {{- range .Values.networkPolicy.ingress.ingressController.ports }}
+        - port: {{ .port }}
+          protocol: {{ .protocol }}
+        {{- end }}
+{{- end }}

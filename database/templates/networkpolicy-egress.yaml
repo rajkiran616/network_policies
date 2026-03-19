@@ -1,0 +1,28 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- if .Values.networkPolicy.egress.dns.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.app.name }}-allow-dns
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: {{ .Values.app.name }}
+    policy-type: egress-dns
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              {{- range $key, $value := .Values.networkPolicy.egress.dns.namespaceLabels }}
+              {{ $key }}: {{ $value | quote }}
+              {{- end }}
+      ports:
+        - port: {{ .Values.networkPolicy.egress.dns.port }}
+          protocol: UDP
+        - port: {{ .Values.networkPolicy.egress.dns.port }}
+          protocol: TCP
+{{- end }}
+{{- end }}

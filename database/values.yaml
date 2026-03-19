@@ -1,0 +1,49 @@
+# -- Namespace configuration
+namespace:
+  name: db
+  labels:
+    ns: db
+    environment: dev
+  annotations:
+    team: "database-team"
+
+# -- Application configuration
+app:
+  name: postgres-db
+  replicas: 1
+  image: postgres:16
+  port: 5432
+  env:
+    POSTGRES_DB: appdb
+    POSTGRES_USER: appuser
+    # In production, use a Secret instead
+    POSTGRES_PASSWORD: changeme123
+
+# -- Network policy configuration
+networkPolicy:
+  enabled: true
+
+  # Default deny all ingress
+  defaultDenyIngress: true
+
+  # Default deny all egress
+  defaultDenyEgress: true
+
+  # Ingress rules — which namespaces can reach this database
+  ingress:
+    allowedNamespaces:
+      - name: app-namespace
+        namespaceLabels:
+          ns: app
+        ports:
+          - port: 5432
+            protocol: TCP
+
+  # Egress rules
+  egress:
+    # Allow DNS resolution
+    dns:
+      enabled: true
+      namespaceLabels:
+        kubernetes.io/metadata.name: kube-system
+      port: 53

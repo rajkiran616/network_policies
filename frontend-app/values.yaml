@@ -1,0 +1,79 @@
+# -- Namespace configuration
+namespace:
+  name: app
+  labels:
+    ns: app
+    environment: dev
+  annotations:
+    team: "frontend-team"
+
+# -- Application configuration
+app:
+  name: frontend
+  replicas: 2
+  image: nginx:1.27
+  port: 80
+
+# -- Network policy configuration
+networkPolicy:
+  enabled: true
+
+  # Default deny all ingress
+  defaultDenyIngress: true
+
+  # Default deny all egress (set to true to lock down egress)
+  defaultDenyEgress: true
+
+  # Ingress rules
+  ingress:
+    # Allow traffic from ingress controller
+    ingressController:
+      enabled: true
+      # Namespace where your ingress controller runs
+      namespaceLabels:
+        kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 80
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+
+  # Egress rules
+  egress:
+    # Allow DNS resolution (required if defaultDenyEgress is true)
+    dns:
+      enabled: true
+      namespaceLabels:
+        kubernetes.io/metadata.name: kube-system
+      port: 53
+
+    # Allow egress to database namespace
+    database:
+      enabled: true
+      namespaceLabels:
+        ns: db
+      ports:
+        - port: 5432
+          protocol: TCP
+
+    # Allow egress to external services
+    external:
+      enabled: true
+      rules:
+        - name: ipa-server
+          cidr: 10.0.10.5/32
+          ports:
+            - port: 443
+              protocol: TCP
+            - port: 88
+              protocol: TCP
+        - name: ldap-server
+          cidr: 10.0.10.10/32
+          ports:
+            - port: 636
+              protocol: TCP
+        - name: external-db
+          cidr: 10.0.20.0/24
+          ports:
+            - port: 5432
+              protocol: TCP
